@@ -13,19 +13,15 @@ class ReSession():
             host=self.c.host, port=self.c.port,
             db=self.c.db, password=self.c.password
         )
-
         self.__handler = handler
-
         try:
             self.__ip_address = self.__handler.request.remote_ip
         except:
             self.__ip_address = ''
-
         try:
             self.__user_agent = self.__handler.request.headers['User-Agent']
         except:
             self.__user_agent = None
-
         try:
             ss = self.__handler.get_secure_cookie('ReSSID')
             if ss and len(ss) == 37:
@@ -59,7 +55,7 @@ class ReSession():
                 if self.__ip_address != '':
                     self.__id = self.__mk_sid()
 
-                    self.__handler.set_secure_cookie("ReSSID", self.__id, 1)
+                    self.__handler.set_secure_cookie("ReSSID", self.__id, (self.c.expire_time / 86400.0))
 
                     _temp = {
                         'ip_address': self.__ip_address,
@@ -85,12 +81,6 @@ class ReSession():
         except:
             return False
 
-    def is_exist(self, name, index=False):
-        k = self.get_keys()
-        if name in k:
-            return k.index(name) if index else True
-        else:
-            return -1 if index else False
 
     def set(self, name=None, value=None):
         try:
@@ -120,20 +110,24 @@ class ReSession():
     def get_keys(self):
         try:
             _di = json.loads(self.redis_instance.get(self.__id))
-            ret = []
-            for i in _di['data']:
-                ret.append(list([k for k in i.keys()])[0])
-            return ret
+            return list([k for k in _di['data'].keys()])
         except:
             return []
 
+    def is_exist(self, name, index=False):
+        k = self.get_keys()
+        if name in k:
+            return k.index(name) if index else True
+        else:
+            return -1 if index else False
+
     def delete(self, name):
-        ind = self.is_exist(name, True)
+        ind = self.is_exist(name)
         try:
-            if ind and ind != -1:
+            if ind:
                 _di = json.loads(self.redis_instance.get(self.__id))
                 if _di:
-                    del _di['data'][ind]
+                    _di['data'].pop(name, None)
                     self.redis_instance.setex(self.__id, self.c.expire_time, json.dumps(_di))
                     return True
             else:
@@ -146,7 +140,7 @@ class ReSession():
             _di = self.redis_instance.get(self.__id)
             if _di:
                 _di = json.loads(_di)
-                _di['data'] = []
+                _di['data'] = {}
                 self.redis_instance.setex(self.__id, self.c.expire_time, json.dumps(_di))
             return True
         except:
@@ -158,15 +152,14 @@ class ReSession():
         import random
         rnd = ""
 
-        key = {'key': config.cookie_secret.split()}
-        key['length'] = len(key['key'])
+        key = {'key': config.secret_key, 'length': len(config.secret_key)}
 
         for i in range(0, 63):
             if len(rnd) < 37:
-                if i % 2:
+                if i % 2 == 0:
                     rnd += alpha[random.randint(0, 61)]
                 else:
-                    rnd += key['key'][random.randint(0, key['length'] - 1)]
+                    rnd += key['key'][random.randint(0, (int(key['length']) - 1))]
             else:
                 break
         return rnd
