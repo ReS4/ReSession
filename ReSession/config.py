@@ -8,7 +8,7 @@ class ReConfig():
         self.db = 1
         self.password = None
 
-        self.cookie_secret = "Zadfn%p2*XdTP1o/Vo="
+        self.secret_key = "Zadfn%p2*XdTP1o/Vo="
         self.expire_time = 86400
 
     def set(self, **kwargs):
@@ -17,7 +17,7 @@ class ReConfig():
         self.db = kwargs['db'] if 'db' in kwargs else 1
         self.password = kwargs['password'] if 'password' in kwargs else None
 
-        self.cookie_secret = kwargs['cookie_secret'] if 'cookie_secret' in kwargs else "Zadfn%p2*XdTP1o/Vo="
+        self.secret_key = kwargs['secret_key'] if 'secret_key' in kwargs else "Zadfn%p2*XdTP1o/Vo="
         self.expire_time = kwargs['expire_time'] if 'expire_time' in kwargs else 86400
 
 

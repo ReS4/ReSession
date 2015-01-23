@@ -9,7 +9,6 @@ from config import *
 class ReSession():
     def __init__(self, handler):
         self.c = config
-        print(self.c.host)
         self.redis_instance = redis.StrictRedis(
             host=self.c.host, port=self.c.port,
             db=self.c.db, password=self.c.password
@@ -86,6 +85,13 @@ class ReSession():
         except:
             return False
 
+    def is_exist(self, name, index=False):
+        k = self.get_keys()
+        if name in k:
+            return k.index(name) if index else True
+        else:
+            return -1 if index else False
+
     def set(self, name=None, value=None):
         try:
             if not name or not value:
@@ -108,26 +114,59 @@ class ReSession():
         except:
             return None
 
-    # def is_first_req(self):
-    #     try:
-    #         if self.__handler.request.headers['ReSSID'] == self.__id:
-    #             return False
-    #         else:
-    #             return True
-    #     except:
-    #         return True
-
     def get_sid(self):
         return self.__id
+
+    def get_keys(self):
+        try:
+            _di = json.loads(self.redis_instance.get(self.__id))
+            ret = []
+            for i in _di['data']:
+                ret.append(list([k for k in i.keys()])[0])
+            return ret
+        except:
+            return []
+
+    def delete(self, name):
+        ind = self.is_exist(name, True)
+        try:
+            if ind and ind != -1:
+                _di = json.loads(self.redis_instance.get(self.__id))
+                if _di:
+                    del _di['data'][ind]
+                    self.redis_instance.setex(self.__id, self.c.expire_time, json.dumps(_di))
+                    return True
+            else:
+                return False
+        except:
+            return False
+
+    def destroy(self):
+        try:
+            _di = self.redis_instance.get(self.__id)
+            if _di:
+                _di = json.loads(_di)
+                _di['data'] = []
+                self.redis_instance.setex(self.__id, self.c.expire_time, json.dumps(_di))
+            return True
+        except:
+            return False
 
     @staticmethod
     def __mk_sid():
         alpha = [chr(i) for i in range(65, 91)] + [chr(i) for i in range(97, 123)] + [chr(i) for i in range(48, 58)]
         import random
         rnd = ""
+
+        key = {'key': config.cookie_secret.split()}
+        key['length'] = len(key['key'])
+
         for i in range(0, 63):
             if len(rnd) < 37:
-                rnd += alpha[random.randint(0, 61)]
+                if i % 2:
+                    rnd += alpha[random.randint(0, 61)]
+                else:
+                    rnd += key['key'][random.randint(0, key['length'] - 1)]
             else:
                 break
         return rnd
