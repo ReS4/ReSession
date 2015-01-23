@@ -95,14 +95,17 @@ class ReSession():
         except:
             return False
 
-    def get(self, name=None):
+    def get(self, name=None, default=None):
         try:
             _di = self.redis_instance.get(self.__id)
             if _di:
                 _di = json.loads(_di)
                 return _di['data'][name]
         except:
-            return None
+            if default:
+                return default
+            else:
+                return None
 
     def get_sid(self):
         return self.__id
